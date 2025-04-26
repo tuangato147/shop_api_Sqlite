@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Nền đỏ nhạt -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFEBEE"/>
+        </shape>
+    </item>
+
+    <!-- Icon error ở giữa -->
+    <item android:gravity="center">
+        <shape android:shape="rectangle">
+            <size android:width="48dp"
+                android:height="48dp"/>
+            <solid android:color="#FFE0E0"/>
+        </shape>
+    </item>
+
+    <!-- Icon error -->
+    <item android:gravity="center">
+        <bitmap
+            android:gravity="center"
+            android:src="@android:drawable/ic_dialog_alert"/>
+    </item>
+</layer-list>
