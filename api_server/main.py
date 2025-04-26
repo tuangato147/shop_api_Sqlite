@@ -88,7 +88,7 @@ def get_products():
 @app.route('/api/products', methods=['POST'])
 def create_product():
     data = request.get_json()
-    if not data or not all(key in data for key in ['name', 'price','image']):
+    if not data or not all(key in data for key in ['name', 'price','image','description']):
         return jsonify({'error': 'Missing required fields'}), 400
 
     db = get_db()
@@ -231,6 +231,179 @@ def update_order(order_id):
     except Exception as e:
         db.rollback()
         return jsonify({'error': str(e)}), 500
+
+        # CRUD for Products(xóa sản phẩm)
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Kiểm tra sản phẩm có tồn tại
+        product = cursor.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        # Kiểm tra sản phẩm có trong orders không
+        orders = cursor.execute('SELECT * FROM orders WHERE product_id = ?', (product_id,)).fetchone()
+        if orders:
+            return jsonify({'error': 'Cannot delete product that has orders'}), 400
+
+        cursor.execute('DELETE FROM products WHERE id = ?', (product_id,))
+        db.commit()
+        return jsonify({'message': 'Product deleted successfully'})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Kiểm tra sản phẩm có tồn tại
+        product = cursor.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        # Cập nhật các trường được cung cấp
+        update_fields = []
+        values = []
+        for field in ['name', 'price', 'image', 'description']:
+            if field in data:
+                update_fields.append(f"{field} = ?")
+                values.append(data[field])
+        
+        if not update_fields:
+            return jsonify({'error': 'No fields to update'}), 400
+
+        values.append(product_id)
+        query = f"UPDATE products SET {', '.join(update_fields)} WHERE id = ?"
+        cursor.execute(query, values)
+        db.commit()
+
+        # Trả về sản phẩm đã cập nhật
+        updated_product = cursor.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+        return jsonify(dict(updated_product))
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# CRUD for Customers
+@app.route('/api/customers/<int:customer_id>', methods=['DELETE'])
+def delete_customer(customer_id):
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Kiểm tra khách hàng có tồn tại
+        customer = cursor.execute('SELECT * FROM customers WHERE id = ?', (customer_id,)).fetchone()
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Kiểm tra khách hàng có đơn hàng không
+        orders = cursor.execute('SELECT * FROM orders WHERE customer_id = ?', (customer_id,)).fetchone()
+        if orders:
+            return jsonify({'error': 'Cannot delete customer that has orders'}), 400
+
+        cursor.execute('DELETE FROM customers WHERE id = ?', (customer_id,))
+        db.commit()
+        return jsonify({'message': 'Customer deleted successfully'})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/customers/<int:customer_id>', methods=['PUT'])
+def update_customer(customer_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Kiểm tra khách hàng có tồn tại
+        customer = cursor.execute('SELECT * FROM customers WHERE id = ?', (customer_id,)).fetchone()
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Cập nhật các trường được cung cấp
+        update_fields = []
+        values = []
+        for field in ['name', 'phone', 'address']:
+            if field in data:
+                update_fields.append(f"{field} = ?")
+                values.append(data[field])
+        
+        if not update_fields:
+            return jsonify({'error': 'No fields to update'}), 400
+
+        values.append(customer_id)
+        query = f"UPDATE customers SET {', '.join(update_fields)} WHERE id = ?"
+        cursor.execute(query, values)
+        db.commit()
+
+        # Trả về khách hàng đã cập nhật
+        updated_customer = cursor.execute('SELECT * FROM customers WHERE id = ?', (customer_id,)).fetchone()
+        return jsonify(dict(updated_customer))
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Delete Order
+@app.route('/api/orders/<int:order_id>', methods=['DELETE'])
+def delete_order(order_id):
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Kiểm tra đơn hàng có tồn tại
+        order = cursor.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()
+        if not order:
+            return jsonify({'error': 'Order not found'}), 404
+
+        cursor.execute('DELETE FROM orders WHERE id = ?', (order_id,))
+        db.commit()
+        return jsonify({'message': 'Order deleted successfully'})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Get single item endpoints
+@app.route('/api/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    db = get_db()
+    product = db.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+    if product:
+        return jsonify(dict(product))
+    return jsonify({'error': 'Product not found'}), 404
+
+@app.route('/api/customers/<int:customer_id>', methods=['GET'])
+def get_customer(customer_id):
+    db = get_db()
+    customer = db.execute('SELECT * FROM customers WHERE id = ?', (customer_id,)).fetchone()
+    if customer:
+        return jsonify(dict(customer))
+    return jsonify({'error': 'Customer not found'}), 404
+
+@app.route('/api/orders/<int:order_id>', methods=['GET'])
+def get_order(order_id):
+    db = get_db()
+    order = db.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()
+    if order:
+        return jsonify(dict(order))
+    return jsonify({'error': 'Order not found'}), 404
 
 @app.after_request
 def after_request(response):
